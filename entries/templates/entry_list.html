@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}All Entries | Budget Writer{% endblock %}
+
+{% block page_header %}Entries{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Report Configuration Card -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+            <div class="row g-3 align-items-end">
+                <!-- School Name -->
+                <div class="col-12 col-md-5">
+                    <label for="school-name-input" class="form-label fw-semibold text-dark small">School Name (PDF Header)</label>
+                    <input type="text" id="school-name-input" class="form-control" value="School Name">
+                </div>
+
+                <!-- Budget Period -->
+                <div class="col-12 col-md-5">
+                    <label for="budget-period-input" class="form-label fw-semibold text-dark small">Budget Period (PDF Header)</label>
+                    <input type="text" id="budget-period-input" class="form-control" value="Budget 2025 July to 2026 June">
+                </div>
+
+                <!-- PDF Download Button -->
+                <div class="col-12 col-md-2">
+                    <a href="{% url 'entry_pdf' %}" class="btn btn-outline-danger w-100 d-inline-flex align-items-center justify-content-center" id="btn-download-pdf">
+                        <i class="fa-solid fa-file-pdf me-1"></i> Export PDF
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Entries Table Card -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <div class="table-responsive">
+                <table class="table custom-table" id="entries-list-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th class="text-end">Expense</th>
+                            <th class="text-end">Income</th>
+                            <th class="text-center">Date</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if entries %}
+                            {% for entry in entries %}
+                                <tr>
+                                    <td class="fw-semibold">{{ entry.name }}</td>
+                                    <td class="text-end text-danger font-monospace">
+                                        {% if entry.money > 0 %}
+                                            <span class="badge-money">Rs. {{ entry.money|floatformat:2 }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end text-success font-monospace">
+                                        {% if entry.income > 0 %}
+                                            <span class="badge-income">Rs. {{ entry.income|floatformat:2 }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center text-secondary font-monospace">{{ entry.date|date:"d-m-Y" }}</td>
+                                    <td class="text-center">
+                                        <div class="d-inline-flex gap-1">
+                                            <a href="{% url 'entry_update' entry.pk %}" class="btn-icon-only btn-edit" title="Edit Entry" id="edit-entry-{{ entry.pk }}">
+                                                <i class="fa-solid fa-pen-to-square"></i>
+                                            </a>
+                                            <form action="{% url 'entry_delete' entry.pk %}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete the entry &quot;{{ entry.name|escapejs }}&quot;? This action cannot be undone.');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn-icon-only btn-delete" title="Delete Entry" id="delete-entry-{{ entry.pk }}">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    <i class="fa-solid fa-folder-open fs-2 mb-3 d-block text-secondary"></i>
+                                    No records match your filters.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Totals Strip at Bottom -->
+            <div class="summary-strip d-flex flex-column flex-sm-row justify-content-around text-center gap-3">
+                <div class="summary-item">
+                    <span class="summary-item-label">Total Expense</span>
+                    <span class="summary-item-value text-danger" id="summary-total-money">Rs. {{ filtered_total_money|floatformat:2 }}</span>
+                </div>
+                <div class="summary-item border-start-sm border-end-sm">
+                    <span class="summary-item-label">Total Income</span>
+                    <span class="summary-item-value text-success" id="summary-total-income">Rs. {{ filtered_total_income|floatformat:2 }}</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-item-label">Balance</span>
+                    <span class="summary-item-value {% if filtered_balance >= 0 %}text-success{% else %}text-danger{% endif %}" id="summary-balance">
+                        {% if filtered_balance < 0 %}-{% endif %}Rs. {{ filtered_balance_abs|floatformat:2 }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Custom Pagination Navigation -->
+            {% if is_paginated %}
+                <div class="pagination-container">
+                    <div class="text-muted small">
+                        Showing page {{ page_obj.number }} of {{ paginator.num_pages }} (Total {{ paginator.count }} records)
+                    </div>
+                    <div class="d-flex gap-2">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="page-link-custom" id="pagination-prev">
+                                <i class="fa-solid fa-chevron-left me-1"></i> Previous
+                            </a>
+                        {% else %}
+                            <span class="page-link-custom disabled">
+                                <i class="fa-solid fa-chevron-left me-1"></i> Previous
+                            </span>
+                        {% endif %}
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="page-link-custom" id="pagination-next">
+                                Next <i class="fa-solid fa-chevron-right ms-1"></i>
+                            </a>
+                        {% else %}
+                            <span class="page-link-custom disabled">
+                                Next <i class="fa-solid fa-chevron-right ms-1"></i>
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const schoolInput = document.getElementById('school-name-input');
+        const periodInput = document.getElementById('budget-period-input');
+        const pdfBtn = document.getElementById('btn-download-pdf');
+        
+        function updatePdfLink() {
+            const school = encodeURIComponent(schoolInput.value);
+            const period = encodeURIComponent(periodInput.value);
+            pdfBtn.href = `{% url 'entry_pdf' %}?school_name=${school}&budget_period=${period}`;
+        }
+        
+        if (schoolInput && periodInput && pdfBtn) {
+            schoolInput.addEventListener('input', updatePdfLink);
+            periodInput.addEventListener('input', updatePdfLink);
+            updatePdfLink();
+        }
+    });
+</script>
+{% endblock %}

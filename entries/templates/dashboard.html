@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | Budget Writer{% endblock %}
+
+{% block page_header %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Stat Cards Section -->
+<div class="row g-4 mb-4">
+    <!-- Total Money Card -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card card-money">
+            <div class="stat-icon-wrapper">
+                <i class="fa-solid fa-arrow-down-long"></i>
+            </div>
+            <div class="stat-label">Total Expense</div>
+            <div class="stat-value" id="card-total-money">Rs. {{ total_money|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    <!-- Total Income Card -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card card-income">
+            <div class="stat-icon-wrapper">
+                <i class="fa-solid fa-arrow-up-long"></i>
+            </div>
+            <div class="stat-label">Total Income</div>
+            <div class="stat-value" id="card-total-income">Rs. {{ total_income|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    <!-- Current Balance Card -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card {% if balance >= 0 %}card-balance-plus{% else %}card-balance-minus{% endif %}">
+            <div class="stat-icon-wrapper">
+                <i class="fa-solid fa-scale-balanced"></i>
+            </div>
+            <div class="stat-label">Current Balance</div>
+            <div class="stat-value" id="card-current-balance" style="color: {% if balance >= 0 %}#10b981{% else %}#ef4444{% endif %};">
+                {% if balance < 0 %}-{% endif %}Rs. {{ balance_abs|floatformat:2 }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Records Card -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card card-records">
+            <div class="stat-icon-wrapper">
+                <i class="fa-solid fa-folder-open"></i>
+            </div>
+            <div class="stat-label">Total Records</div>
+            <div class="stat-value" id="card-total-records">{{ total_records }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Entries Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+                <div>
+                    <h2 class="h4 mb-1 text-dark">Recent Entries</h2>
+                    <p class="text-muted small mb-0">Showing the latest 10 transactions added to the system.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'entry_create' %}" class="btn btn-primary-grad" id="btn-add-entry">
+                        <i class="fa-solid fa-plus me-1"></i> Add Entry
+                    </a>
+                    <a href="{% url 'entry_list' %}" class="btn btn-outline-secondary px-3 py-2 rounded-3 text-dark border-secondary-subtle" id="btn-view-all">
+                        <i class="fa-solid fa-list-ul me-1"></i> View All
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Entries Table -->
+            <div class="table-responsive">
+                <table class="table custom-table" id="recent-entries-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th class="text-end">Expense</th>
+                            <th class="text-end">Income</th>
+                            <th class="text-center">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if recent_entries %}
+                            {% for entry in recent_entries %}
+                                <tr>
+                                    <td class="fw-semibold">{{ entry.name }}</td>
+                                    <td class="text-end text-danger font-monospace">
+                                        {% if entry.money > 0 %}
+                                            <span class="badge-money">Rs. {{ entry.money|floatformat:2 }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end text-success font-monospace">
+                                        {% if entry.income > 0 %}
+                                            <span class="badge-income">Rs. {{ entry.income|floatformat:2 }}</span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center text-secondary font-monospace">{{ entry.date|date:"d-m-Y" }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5 text-muted">
+                                    <i class="fa-solid fa-folder-open fs-2 mb-3 d-block text-secondary"></i>
+                                    No entries found. Click "Add Entry" to create your first budget record.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
