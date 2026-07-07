@@ -1,8 +1,8 @@
 import io
 from django.http import FileResponse
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views import View
-from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import TemplateView, CreateView, UpdateView, DeleteView
 from django.utils import timezone
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
@@ -15,6 +15,7 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.contrib import messages
 from .models import Entry
 from .forms import EntryForm
+from django.core.paginator import Paginator
 
 class DashboardView(TemplateView):
     template_name = 'dashboard.html'
@@ -41,56 +42,80 @@ class DashboardView(TemplateView):
         
         return context
 
-class EntryListView(ListView):
-    model = Entry
-    template_name = 'entry_list.html'
-    context_object_name = 'entries'
-    paginate_by = 10
 
-    def get_queryset(self):
-        return super().get_queryset().annotate(max_amount=Greatest('money', 'income')).order_by('-max_amount')
+def render_single_page_list(view_instance, form, is_editing=False, editing_entry=None, form_action=None):
+    all_entries = Entry.objects.annotate(max_amount=Greatest('money', 'income')).order_by('-max_amount')
+    
+    # Calculate totals
+    totals = all_entries.aggregate(
+        total_money=Sum('money'),
+        total_income=Sum('income')
+    )
+    total_money = totals['total_money'] or 0
+    total_income = totals['total_income'] or 0
+    balance = total_income - total_money
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Calculate totals for the filtered queryset
-        filtered_qs = self.get_queryset()
-        totals = filtered_qs.aggregate(
-            total_money=Sum('money'),
-            total_income=Sum('income')
-        )
-        total_money = totals['total_money'] or 0
-        total_income = totals['total_income'] or 0
-        balance = total_income - total_money
+    # Pagination
+    paginator = Paginator(all_entries, 10)
+    page_number = view_instance.request.GET.get('page') or 1
+    page_obj = paginator.get_page(page_number)
 
-        context['filtered_total_money'] = total_money
-        context['filtered_total_income'] = total_income
-        context['filtered_balance'] = balance
-        context['filtered_balance_abs'] = abs(balance)
-        return context
+    context = {
+        'entries': page_obj.object_list,
+        'page_obj': page_obj,
+        'is_paginated': page_obj.has_other_pages(),
+        'paginator': paginator,
+        'filtered_total_money': total_money,
+        'filtered_total_income': total_income,
+        'filtered_balance': balance,
+        'filtered_balance_abs': abs(balance),
+        'form': form,
+        'is_editing': is_editing,
+        'editing_entry': editing_entry,
+        'form_action': form_action or reverse_lazy('entry_create'),
+    }
+    return render(view_instance.request, 'entry_list.html', context)
+
+
+class EntryListView(View):
+    def get(self, request, *args, **kwargs):
+        edit_id = request.GET.get('edit')
+        if edit_id:
+            entry = get_object_or_404(Entry, pk=edit_id)
+            form = EntryForm(instance=entry)
+            form_action = reverse_lazy('entry_update', args=[entry.pk])
+            return render_single_page_list(self, form, is_editing=True, editing_entry=entry, form_action=form_action)
+        else:
+            form = EntryForm()
+            return render_single_page_list(self, form)
+
 
 class EntryCreateView(SuccessMessageMixin, CreateView):
     model = Entry
     form_class = EntryForm
-    template_name = 'entry_form.html'
     success_url = reverse_lazy('entry_list')
     success_message = "Entry created successfully!"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Add Entry'
-        return context
+    def get(self, request, *args, **kwargs):
+        return redirect('entry_list')
+
+    def form_invalid(self, form):
+        return render_single_page_list(self, form)
+
 
 class EntryUpdateView(SuccessMessageMixin, UpdateView):
     model = Entry
     form_class = EntryForm
-    template_name = 'entry_form.html'
     success_url = reverse_lazy('entry_list')
     success_message = "Entry updated successfully!"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Edit Entry'
-        return context
+    def get(self, request, *args, **kwargs):
+        return redirect(f"{reverse_lazy('entry_list')}?edit={self.kwargs['pk']}")
+
+    def form_invalid(self, form):
+        form_action = reverse_lazy('entry_update', args=[self.object.pk])
+        return render_single_page_list(self, form, is_editing=True, editing_entry=self.object, form_action=form_action)
+
 
 class EntryDeleteView(SuccessMessageMixin, DeleteView):
     model = Entry
