@@ -5,136 +5,28 @@
 {% block page_header %}Entries{% endblock %}
 
 {% block content %}
+<!-- Action Forms (Invisible layout elements to target submits) -->
+<form id="add-form" method="post" action="{% url 'entry_create' %}" novalidate>
+    {% csrf_token %}
+</form>
+{% if is_editing %}
+<form id="edit-form" method="post" action="{{ form_action }}" novalidate>
+    {% csrf_token %}
+</form>
+{% endif %}
+
 <div class="space-y-6">
-    <!-- Add/Edit Entry Form Card -->
-    <div class="rounded-xl border border-zinc-200 bg-white p-6 md:p-8 shadow-sm" id="entry-form-card">
-        <div class="flex items-center gap-2 mb-1">
-            {% if is_editing %}
-                <div class="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-900">
-                    <i class="fa-solid fa-pen-to-square text-sm"></i>
-                </div>
-                <h2 class="font-heading font-semibold text-lg text-zinc-900">Edit Entry</h2>
-            {% else %}
-                <div class="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-900">
-                    <i class="fa-solid fa-plus text-sm"></i>
-                </div>
-                <h2 class="font-heading font-semibold text-lg text-zinc-900">Add Entry</h2>
-            {% endif %}
+    <!-- Global validation errors notification -->
+    {% if form.non_field_errors %}
+        <div class="p-4 rounded-lg bg-red-50/50 border border-red-200 text-sm text-red-900 flex items-start gap-2.5 shadow-sm" role="alert">
+            <i class="fa-solid fa-triangle-exclamation mt-0.5 text-red-600"></i>
+            <div class="flex-1 font-medium">
+                {% for error in form.non_field_errors %}
+                    <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
         </div>
-        <p class="text-xs text-zinc-500 mb-6">
-            {% if is_editing %}
-                Update the fields below to edit this budget transaction.
-            {% else %}
-                Fill in the fields below to add a new budget transaction.
-            {% endif %}
-        </p>
-
-        <form method="post" action="{{ form_action }}" novalidate class="space-y-5">
-            {% csrf_token %}
-            
-            <!-- Global validation errors -->
-            {% if form.non_field_errors %}
-                <div class="p-4 rounded-lg bg-red-50/50 border border-red-200 text-sm text-red-900 flex items-start gap-2.5" role="alert">
-                    <i class="fa-solid fa-triangle-exclamation mt-0.5 text-red-600"></i>
-                    <div class="flex-1 font-medium">
-                        {% for error in form.non_field_errors %}
-                            <p class="mb-0">{{ error }}</p>
-                        {% endfor %}
-                    </div>
-                </div>
-            {% endif %}
-
-            <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
-                <!-- Name Grouped Selection Dropdown -->
-                <div class="space-y-2">
-                    <label for="{{ form.name.id_for_label }}" class="text-xs font-semibold text-zinc-700 tracking-tight">Category / Name <span class="text-red-500">*</span></label>
-                    {{ form.name }}
-                    {% if form.name.errors %}
-                        <div class="text-xs font-medium text-red-600 mt-1">
-                            {% for error in form.name.errors %}
-                                <span>{{ error }}</span>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    
-                    <!-- Custom Name Text Input -->
-                    <div id="custom-name-container" class="mt-3.5 space-y-2" style="display: none;">
-                        <label for="{{ form.custom_name.id_for_label }}" class="text-xs font-semibold text-zinc-500 tracking-tight">Custom Category Name <span class="text-red-500">*</span></label>
-                        {{ form.custom_name }}
-                        {% if form.custom_name.errors %}
-                            <div class="text-xs font-medium text-red-600 mt-1">
-                                {% for error in form.custom_name.errors %}
-                                    <span>{{ error }}</span>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Date Input -->
-                <div class="space-y-2">
-                    <label for="{{ form.date.id_for_label }}" class="text-xs font-semibold text-zinc-700 tracking-tight">Date <span class="text-red-500">*</span></label>
-                    {{ form.date }}
-                    {% if form.date.errors %}
-                        <div class="text-xs font-medium text-red-600 mt-1">
-                            {% for error in form.date.errors %}
-                                <span>{{ error }}</span>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <!-- Expense Input -->
-                <div class="space-y-2">
-                    <label for="{{ form.money.id_for_label }}" class="text-xs font-semibold text-zinc-700 tracking-tight">Expense Amount</label>
-                    <div class="relative rounded-md shadow-sm">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <span class="text-zinc-400 text-sm font-medium">Rs.</span>
-                        </div>
-                        {{ form.money }}
-                    </div>
-                    {% if form.money.errors %}
-                        <div class="text-xs font-medium text-red-600 mt-1">
-                            {% for error in form.money.errors %}
-                                <span>{{ error }}</span>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-
-                <!-- Income Input -->
-                <div class="space-y-2">
-                    <label for="{{ form.income.id_for_label }}" class="text-xs font-semibold text-zinc-700 tracking-tight">Income Amount</label>
-                    <div class="relative rounded-md shadow-sm">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <span class="text-zinc-400 text-sm font-medium">Rs.</span>
-                        </div>
-                        {{ form.income }}
-                    </div>
-                    {% if form.income.errors %}
-                        <div class="text-xs font-medium text-red-600 mt-1">
-                            {% for error in form.income.errors %}
-                                <span>{{ error }}</span>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Form Action Buttons -->
-            <div class="flex items-center gap-3 pt-2">
-                <button type="submit" class="inline-flex items-center justify-center rounded-md bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white shadow hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-950 focus-visible:ring-offset-2 transition-colors" id="btn-save-entry">
-                    <i class="fa-solid fa-floppy-disk text-xs mr-2"></i>
-                    {% if is_editing %}Save Changes{% else %}Save Entry{% endif %}
-                </button>
-                {% if is_editing %}
-                    <a href="{% url 'entry_list' %}" class="inline-flex items-center justify-center rounded-md border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-600 shadow-sm hover:bg-zinc-50 hover:text-zinc-900 transition-colors" id="btn-cancel-edit">
-                        Cancel Edit
-                    </a>
-                {% endif %}
-            </div>
-        </form>
-    </div>
+    {% endif %}
 
     <!-- Report Configuration Card -->
     <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
@@ -157,7 +49,7 @@
 
             <!-- PDF Download Button -->
             <div class="lg:col-span-2">
-                <a href="{% url 'entry_pdf' %}" class="inline-flex items-center justify-center gap-1.5 w-full rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-sm hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-colors" id="btn-download-pdf">
+                <a href="{% url 'entry_pdf' %}" target="_blank" class="inline-flex items-center justify-center gap-1.5 w-full rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-sm hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-colors" id="btn-download-pdf">
                     <i class="fa-solid fa-file-pdf text-xs"></i> Export PDF
                 </a>
             </div>
@@ -170,57 +62,178 @@
             <table class="w-full text-left border-collapse" id="entries-list-table">
                 <thead>
                     <tr class="border-b border-zinc-200 bg-zinc-50/50">
-                        <th class="px-6 py-3.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Name</th>
-                        <th class="px-6 py-3.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-end">Expense</th>
-                        <th class="px-6 py-3.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-end">Income</th>
-                        <th class="px-6 py-3.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center">Date</th>
-                        <th class="px-6 py-3.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center">Actions</th>
+                        <th class="px-6 py-3.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider w-1/3">Name</th>
+                        <th class="px-6 py-3.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-end w-1/5">Expense</th>
+                        <th class="px-6 py-3.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-end w-1/5">Income</th>
+                        <th class="px-6 py-3.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center w-1/6">Date</th>
+                        <th class="px-6 py-3.5 text-xs font-semibold text-zinc-500 uppercase tracking-wider text-center w-1/6">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200">
+                    <!-- Read/Edit Rows -->
                     {% if entries %}
                         {% for entry in entries %}
-                            <tr class="hover:bg-zinc-50/30 transition-colors">
-                                <td class="px-6 py-4 text-sm font-semibold text-zinc-900">{{ entry.name }}</td>
-                                <td class="px-6 py-4 text-sm text-end font-mono text-zinc-950">
-                                    {% if entry.money > 0 %}
-                                        <span class="inline-flex items-center rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-600/10">
-                                            Rs. {{ entry.money|floatformat:2 }}
-                                        </span>
-                                    {% else %}
-                                        <span class="text-zinc-300">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-end font-mono text-zinc-950">
-                                    {% if entry.income > 0 %}
-                                        <span class="inline-flex items-center rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
-                                            Rs. {{ entry.income|floatformat:2 }}
-                                        </span>
-                                    {% else %}
-                                        <span class="text-zinc-300">-</span>
-                                    {% endif %}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-center font-mono text-zinc-500">{{ entry.date|date:"d-m-Y" }}</td>
-                                <td class="px-6 py-4 text-sm text-center">
-                                    <div class="inline-flex items-center gap-1.5">
-                                        <a href="{% url 'entry_list' %}?edit={{ entry.pk }}" class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm" title="Edit Entry" id="edit-entry-{{ entry.pk }}">
-                                            <i class="fa-solid fa-pen-to-square text-xs"></i>
-                                        </a>
-                                        <form action="{% url 'entry_delete' entry.pk %}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete the entry &quot;{{ entry.name|escapejs }}&quot;? This action cannot be undone.');">
-                                            {% csrf_token %}
-                                            <button type="submit" class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-zinc-200 bg-white text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm" title="Delete Entry" id="delete-entry-{{ entry.pk }}">
-                                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            {% if is_editing and editing_entry.pk == entry.pk %}
+                                <!-- Inline Edit Mode Row -->
+                                <tr class="bg-zinc-50/40">
+                                    <td class="px-4 py-3 align-top">
+                                        <input type="text" name="name" form="edit-form" list="name-choices" value="{{ form.name.value|default:editing_entry.name }}" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2" required>
+                                        {% if form.name.errors %}
+                                            <div class="text-[10px] font-semibold text-red-600 mt-1">
+                                                {% for error in form.name.errors %}{{ error }}{% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 align-top">
+                                        <div class="relative rounded-md shadow-sm">
+                                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                                <span class="text-zinc-400 text-sm font-medium">Rs.</span>
+                                            </div>
+                                            <input type="number" name="money" form="edit-form" step="0.01" value="{{ form.money.value|default:editing_entry.money }}" class="w-full rounded-md border border-zinc-300 bg-white pl-9 pr-3 py-2 text-sm text-zinc-950 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2 text-end font-mono">
+                                        </div>
+                                        {% if form.money.errors %}
+                                            <div class="text-[10px] font-semibold text-red-600 mt-1">
+                                                {% for error in form.money.errors %}{{ error }}{% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 align-top">
+                                        <div class="relative rounded-md shadow-sm">
+                                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                                <span class="text-zinc-400 text-sm font-medium">Rs.</span>
+                                            </div>
+                                            <input type="number" name="income" form="edit-form" step="0.01" value="{{ form.income.value|default:editing_entry.income }}" class="w-full rounded-md border border-zinc-300 bg-white pl-9 pr-3 py-2 text-sm text-zinc-950 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2 text-end font-mono">
+                                        </div>
+                                        {% if form.income.errors %}
+                                            <div class="text-[10px] font-semibold text-red-600 mt-1">
+                                                {% for error in form.income.errors %}{{ error }}{% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 align-top">
+                                        <input type="date" name="date" form="edit-form" value="{% if form.date.value %}{{ form.date.value|date:'Y-m-d' }}{% elif editing_entry.date %}{{ editing_entry.date|date:'Y-m-d' }}{% endif %}" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2 text-center font-mono">
+                                        {% if form.date.errors %}
+                                            <div class="text-[10px] font-semibold text-red-600 mt-1">
+                                                {% for error in form.date.errors %}{{ error }}{% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-3 align-top text-center">
+                                        <div class="inline-flex items-center gap-1.5 mt-1">
+                                            <button type="submit" form="edit-form" class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors shadow-sm" title="Save Changes">
+                                                <i class="fa-solid fa-check text-xs"></i>
                                             </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
+                                            <a href="{% url 'entry_list' %}" class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 transition-colors shadow-sm" title="Cancel">
+                                                <i class="fa-solid fa-xmark text-xs"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% else %}
+                                <!-- Inline Read Mode Row -->
+                                <tr class="hover:bg-zinc-50/30 transition-colors">
+                                    <td class="px-6 py-4 text-sm font-semibold text-zinc-900">{{ entry.name }}</td>
+                                    <td class="px-6 py-4 text-sm text-end font-mono text-zinc-950">
+                                        {% if entry.money > 0 %}
+                                            <span class="inline-flex items-center rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-600/10">
+                                                Rs. {{ entry.money|floatformat:2 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-zinc-300">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-end font-mono text-zinc-950">
+                                        {% if entry.income > 0 %}
+                                            <span class="inline-flex items-center rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/10">
+                                                Rs. {{ entry.income|floatformat:2 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-zinc-300">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-center font-mono text-zinc-500">
+                                        {% if entry.date %}
+                                            {{ entry.date|date:"d-m-Y" }}
+                                        {% else %}
+                                            <span class="text-zinc-300">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-center">
+                                        <div class="inline-flex items-center gap-1.5">
+                                            <a href="{% url 'entry_list' %}?edit={{ entry.pk }}" class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-colors shadow-sm" title="Edit Entry" id="edit-entry-{{ entry.pk }}">
+                                                <i class="fa-solid fa-pen-to-square text-xs"></i>
+                                            </a>
+                                            <form action="{% url 'entry_delete' entry.pk %}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete the entry &quot;{{ entry.name|escapejs }}&quot;? This action cannot be undone.');">
+                                                {% csrf_token %}
+                                                <button type="submit" class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-zinc-200 bg-white text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm" title="Delete Entry" id="delete-entry-{{ entry.pk }}">
+                                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endif %}
                         {% endfor %}
                     {% else %}
-                        <tr>
-                            <td colspan="5" class="px-6 py-16 text-center text-sm text-zinc-400 font-medium">
-                                <i class="fa-solid fa-folder-open fs-2 mb-3 d-block text-zinc-300"></i>
-                                No records found. Use the form above to add your first entry.
+                        {% if not is_editing %}
+                            <tr>
+                                <td colspan="5" class="px-6 py-12 text-center text-sm text-zinc-400 font-medium bg-zinc-50/10">
+                                    <i class="fa-solid fa-folder-open fs-2 mb-3 d-block text-zinc-300"></i>
+                                    No records found. Use the row below to add your first entry.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    {% endif %}
+
+                    <!-- Inline Add Row (Only displayed when NOT in edit mode) -->
+                    {% if not is_editing %}
+                        <tr class="bg-zinc-50/20 border-t-2 border-zinc-200/80">
+                            <td class="px-4 py-3.5 align-top">
+                                <input type="text" name="name" form="add-form" list="name-choices" value="{{ form.name.value|default:'' }}" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2" placeholder="Type or select category..." required>
+                                {% if form.name.errors %}
+                                    <div class="text-[10px] font-semibold text-red-600 mt-1">
+                                        {% for error in form.name.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3.5 align-top">
+                                <div class="relative rounded-md shadow-sm">
+                                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <span class="text-zinc-400 text-sm font-medium">Rs.</span>
+                                    </div>
+                                    <input type="number" name="money" form="add-form" step="0.01" value="{{ form.money.value|default:'' }}" class="w-full rounded-md border border-zinc-300 bg-white pl-9 pr-3 py-2 text-sm text-zinc-950 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2 text-end font-mono" placeholder="0.00">
+                                </div>
+                                {% if form.money.errors %}
+                                    <div class="text-[10px] font-semibold text-red-600 mt-1">
+                                        {% for error in form.money.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3.5 align-top">
+                                <div class="relative rounded-md shadow-sm">
+                                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                        <span class="text-zinc-400 text-sm font-medium">Rs.</span>
+                                    </div>
+                                    <input type="number" name="income" form="add-form" step="0.01" value="{{ form.income.value|default:'' }}" class="w-full rounded-md border border-zinc-300 bg-white pl-9 pr-3 py-2 text-sm text-zinc-950 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2 text-end font-mono" placeholder="0.00">
+                                </div>
+                                {% if form.income.errors %}
+                                    <div class="text-[10px] font-semibold text-red-600 mt-1">
+                                        {% for error in form.income.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3.5 align-top">
+                                <input type="date" name="date" form="add-form" value="{% if form.date.value %}{{ form.date.value|date:'Y-m-d' }}{% endif %}" class="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-950 shadow-sm focus:outline-none focus:ring-2 focus:ring-zinc-950 focus:ring-offset-2 text-center font-mono">
+                                {% if form.date.errors %}
+                                    <div class="text-[10px] font-semibold text-red-600 mt-1">
+                                        {% for error in form.date.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3.5 align-top text-center">
+                                <button type="submit" form="add-form" class="inline-flex items-center justify-center w-full px-3 py-2 text-sm font-semibold tracking-tight rounded-md bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-sm mt-0.5" id="btn-save-entry">
+                                    <i class="fa-solid fa-plus text-[10px] mr-1.5"></i> Add Entry
+                                </button>
                             </td>
                         </tr>
                     {% endif %}
@@ -228,7 +241,7 @@
             </table>
         </div>
 
-        <!-- Totals Strip at Bottom -->
+        <!-- Totals Strip at Bottom (Balance Removed) -->
         <div class="px-6 py-5 border-t border-zinc-200 bg-zinc-50/30 flex flex-col sm:flex-row justify-around text-center gap-4">
             <div class="flex flex-col gap-0.5">
                 <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total Expense</span>
@@ -238,13 +251,6 @@
             <div class="flex flex-col gap-0.5">
                 <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total Income</span>
                 <span class="text-base font-bold font-mono text-emerald-600" id="summary-total-income">Rs. {{ filtered_total_income|floatformat:2 }}</span>
-            </div>
-            <div class="hidden sm:block border-r border-zinc-200"></div>
-            <div class="flex flex-col gap-0.5">
-                <span class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Balance</span>
-                <span class="text-base font-bold font-mono {% if filtered_balance >= 0 %}text-emerald-600{% else %}text-red-600{% endif %}" id="summary-balance">
-                    {% if filtered_balance < 0 %}-{% endif %}Rs. {{ filtered_balance_abs|floatformat:2 }}
-                </span>
             </div>
         </div>
 
@@ -280,28 +286,23 @@
     </div>
 </div>
 
+<!-- Datalist Options Element (Handwritten + Choose) -->
+<datalist id="name-choices">
+    <option value="Staff Payment">
+    <option value="Other Expenses">
+    <option value="Stationery">
+    <option value="Internet Bill">
+    <option value="Electricity Bill">
+    <option value="Petrol">
+    <option value="Fans">
+    <option value="Fans Repair">
+    <option value="Water Cooler">
+    <option value="Doors">
+    <option value="Room Build">
+</datalist>
+
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Toggle custom name category field
-        const nameSelect = document.getElementById('id_name');
-        const customNameContainer = document.getElementById('custom-name-container');
-        const customNameField = document.getElementById('id_custom_name');
-        
-        function toggleCustomName() {
-            if (nameSelect && nameSelect.value === 'Other') {
-                if (customNameContainer) customNameContainer.style.display = 'block';
-                if (customNameField) customNameField.required = true;
-            } else {
-                if (customNameContainer) customNameContainer.style.display = 'none';
-                if (customNameField) customNameField.required = false;
-            }
-        }
-        
-        if (nameSelect) {
-            nameSelect.addEventListener('change', toggleCustomName);
-            toggleCustomName();
-        }
-
         // PDF download configuration
         const schoolInput = document.getElementById('school-name-input');
         const periodInput = document.getElementById('budget-period-input');

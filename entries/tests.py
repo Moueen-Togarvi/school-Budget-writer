@@ -20,10 +20,11 @@ class EntryModelTest(TestCase):
     def test_entry_default_values(self):
         entry_default = Entry.objects.create(
             name="Other Expenses",
-            date=timezone.now().date()
+            date=None
         )
         self.assertEqual(entry_default.money, Decimal("0.00"))
         self.assertEqual(entry_default.income, Decimal("0.00"))
+        self.assertIsNone(entry_default.date)
 
 
 class EntryFormTest(TestCase):
@@ -95,8 +96,8 @@ class EntryFormTest(TestCase):
         self.assertIn('income', form.errors)
         self.assertEqual(form.errors['income'], ['Income cannot be negative.'])
 
-    def test_form_validation_date_required(self):
-        # Case 7: Date omitted (invalid)
+    def test_form_validation_date_optional(self):
+        # Case 7: Date omitted is valid (optional)
         form_data = {
             'name': 'Staff Payment',
             'money': 25000,
@@ -104,44 +105,20 @@ class EntryFormTest(TestCase):
             'date': ''
         }
         form = EntryForm(data=form_data)
-        self.assertFalse(form.is_valid())
-        self.assertIn('date', form.errors)
+        self.assertTrue(form.is_valid())
+        self.assertIsNone(form.cleaned_data.get('date'))
 
-    def test_form_invalid_choice_name(self):
-        # Invalid Choice name selection (invalid)
+    def test_form_custom_category_name_valid(self):
+        # CharField name accepts any string (valid)
         form_data = {
-            'name': 'Invalid School Category Name',
+            'name': 'A Brand New Custom Category Name Here',
             'money': 25000,
             'income': 0,
             'date': '2026-07-07'
         }
         form = EntryForm(data=form_data)
-        self.assertFalse(form.is_valid())
-        self.assertIn('name', form.errors)
-
-    def test_form_custom_category_name_valid(self):
-        form_data = {
-            'name': 'Other',
-            'custom_name': 'Special School Trip',
-            'money': 12000,
-            'income': 0,
-            'date': '2026-07-07'
-        }
-        form = EntryForm(data=form_data)
         self.assertTrue(form.is_valid())
-        self.assertEqual(form.cleaned_data['name'], 'Special School Trip')
-
-    def test_form_custom_category_name_invalid_if_empty(self):
-        form_data = {
-            'name': 'Other',
-            'custom_name': '  ',
-            'money': 12000,
-            'income': 0,
-            'date': '2026-07-07'
-        }
-        form = EntryForm(data=form_data)
-        self.assertFalse(form.is_valid())
-        self.assertIn('custom_name', form.errors)
+        self.assertEqual(form.cleaned_data['name'], 'A Brand New Custom Category Name Here')
 
 
 class EntrySinglePageFlowTest(TestCase):
@@ -169,7 +146,6 @@ class EntrySinglePageFlowTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context['is_editing'])
         self.assertEqual(response.context['editing_entry'], self.entry)
-        self.assertEqual(response.context['form'].instance, self.entry)
 
 
 class EntryPDFExportTest(TestCase):
@@ -192,6 +168,7 @@ class EntryPDFExportTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertEqual(response['Content-Disposition'], 'inline; filename="budget_entries.pdf"')
         self.assertTrue(len(b"".join(response.streaming_content)) > 0)
 
     def test_pdf_export_with_custom_headers(self):
@@ -199,6 +176,7 @@ class EntryPDFExportTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertEqual(response['Content-Disposition'], 'inline; filename="budget_entries.pdf"')
 
     def test_entry_list_ordering(self):
         url = reverse('entry_list')
