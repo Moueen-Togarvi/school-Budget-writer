@@ -35,13 +35,13 @@ class DashboardView(TemplateView):
         context['total_money'] = total_money
         context['total_income'] = total_income
         context['total_records'] = all_entries.count()
-        context['recent_entries'] = all_entries.annotate(max_amount=Greatest('money', 'income')).order_by('-max_amount')[:10]
+        context['recent_entries'] = all_entries.order_by('-money')[:10]
         
         return context
 
 
 def render_single_page_list(view_instance, form, is_editing=False, editing_entry=None, form_action=None):
-    all_entries = Entry.objects.annotate(max_amount=Greatest('money', 'income')).order_by('-max_amount')
+    all_entries = Entry.objects.all().order_by('-money')
     
     # Calculate totals (Balance removed)
     totals = all_entries.aggregate(
@@ -51,18 +51,16 @@ def render_single_page_list(view_instance, form, is_editing=False, editing_entry
     total_money = totals['total_money'] or 0
     total_income = totals['total_income'] or 0
 
-    # Pagination
-    paginator = Paginator(all_entries, 10)
-    page_number = view_instance.request.GET.get('page') or 1
-    page_obj = paginator.get_page(page_number)
+    total_balance = total_income - total_money
+    total_balance_abs = abs(total_balance)
 
     context = {
-        'entries': page_obj.object_list,
-        'page_obj': page_obj,
-        'is_paginated': page_obj.has_other_pages(),
-        'paginator': paginator,
+        'entries': all_entries,
+        'is_paginated': False,
         'filtered_total_money': total_money,
         'filtered_total_income': total_income,
+        'filtered_total_balance': total_balance,
+        'filtered_total_balance_abs': total_balance_abs,
         'form': form,
         'is_editing': is_editing,
         'editing_entry': editing_entry,
@@ -127,7 +125,7 @@ class ExportPDFView(View):
         budget_period = request.GET.get('budget_period') or 'Budget 2025 July to 2026 June'
 
         # Order entries by the largest amount descending
-        entries = Entry.objects.annotate(max_amount=Greatest('money', 'income')).order_by('-max_amount')
+        entries = Entry.objects.all().order_by('-money')
 
         totals = entries.aggregate(
             total_money=Sum('money'),
@@ -166,26 +164,51 @@ class ExportPDFView(View):
             textColor=colors.white
         )
         
-        # Premium Header Table
-        header_left = f"<font size='22'><b>{school_name}</b></font><br/><font size='10' color='#71717a'>{budget_period}</font>"
-        header_right = f"<font size='10'><b>BUDGET REPORT</b></font><br/><font size='9' color='#a1a1aa'>Generated: {timezone.now().strftime('%d-%m-%Y')}</font>"
-        
-        header_data = [
-            [
-                Paragraph(header_left, styles['Normal']), 
-                Paragraph(header_right, ParagraphStyle('RightHeader', parent=styles['Normal'], alignment=2))
-            ]
-        ]
-        
-        header_table = Table(header_data, colWidths=[360, 160])
-        header_table.setStyle(TableStyle([
-            ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        # Centered Premium PDF Header
+        title_style = ParagraphStyle(
+            'CenteredTitle',
+            parent=styles['Normal'],
+            fontName='Helvetica-Bold',
+            fontSize=24,
+            leading=28,
+            textColor=colors.HexColor('#18181b'),
+            alignment=1 # Center-aligned
+        )
+        subtitle_style = ParagraphStyle(
+            'CenteredSubtitle',
+            parent=styles['Normal'],
+            fontName='Helvetica',
+            fontSize=10,
+            leading=14,
+            textColor=colors.HexColor('#71717a'),
+            alignment=1
+        )
+        meta_style = ParagraphStyle(
+            'CenteredMeta',
+            parent=styles['Normal'],
+            fontName='Helvetica-Oblique',
+            fontSize=8,
+            leading=12,
+            textColor=colors.HexColor('#a1a1aa'),
+            alignment=1
+        )
+
+        elements.append(Paragraph(school_name, title_style))
+        elements.append(Spacer(1, 4))
+        elements.append(Paragraph(budget_period, subtitle_style))
+        elements.append(Spacer(1, 4))
+        elements.append(Paragraph(f"Generated on {timezone.now().strftime('%d-%m-%Y')}", meta_style))
+        elements.append(Spacer(1, 10))
+
+        # Thin divider table spanning page width (520pt)
+        sep_table = Table([[""]], colWidths=[520])
+        sep_table.setStyle(TableStyle([
             ('LINEBELOW', (0, 0), (-1, -1), 1, colors.HexColor('#e4e4e7')),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
         ]))
-        
-        elements.append(header_table)
-        elements.append(Spacer(1, 20))
+        elements.append(sep_table)
+        elements.append(Spacer(1, 15))
 
         # Main Data Table
         table_data = [
@@ -199,7 +222,7 @@ class ExportPDFView(View):
 
         for entry in entries:
             money_val = f"Rs. {entry.money:,.2f}" if entry.money > 0 else "-"
-            income_val = f"Rs. {entry.income:,.2f}" if entry.income > 0 else "-"
+            income_val = f"Rs. {entry.income:,.2f}" if entry.income > 0 else "Rs. 0.00"
             date_val = entry.date.strftime('%d-%m-%Y') if entry.date else "-"
             
             table_data.append([
@@ -254,18 +277,31 @@ class ExportPDFView(View):
             textColor=colors.HexColor('#059669') # Emerald-600
         )
 
+        total_balance = total_income - total_money
+        total_balance_abs = abs(total_balance)
+
+        summary_balance_style = ParagraphStyle(
+            'SummaryBalance',
+            parent=summary_cell_value_style,
+            textColor=colors.HexColor('#059669') if total_balance >= 0 else colors.HexColor('#dc2626')
+        )
+
+        balance_sign = "-" if total_balance < 0 else ""
+
         summary_data = [
             [
                 Paragraph("Total Expense", summary_cell_header_style),
-                Paragraph("Total Income", summary_cell_header_style)
+                Paragraph("Total Income", summary_cell_header_style),
+                Paragraph("Total Balance", summary_cell_header_style)
             ],
             [
                 Paragraph(f"Rs. {total_money:,.2f}", summary_money_style),
-                Paragraph(f"Rs. {total_income:,.2f}", summary_income_style)
+                Paragraph(f"Rs. {total_income:,.2f}", summary_income_style),
+                Paragraph(f"{balance_sign}Rs. {total_balance_abs:,.2f}", summary_balance_style)
             ]
         ]
         
-        st = Table(summary_data, colWidths=[260, 260])
+        st = Table(summary_data, colWidths=[173, 173, 174])
         st.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f4f4f5')), # Light zinc
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),

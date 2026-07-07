@@ -94,7 +94,9 @@
                                         Rs. {{ entry.income|floatformat:2 }}
                                     </span>
                                 {% else %}
-                                    <span class="text-zinc-300">-</span>
+                                    <span class="inline-flex items-center rounded-md bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-400 ring-1 ring-inset ring-zinc-200">
+                                        Rs. 0.00
+                                    </span>
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 text-sm text-center font-mono text-zinc-500">

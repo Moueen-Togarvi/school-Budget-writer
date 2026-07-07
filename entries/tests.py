@@ -183,5 +183,5 @@ class EntryPDFExportTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         entries = list(response.context['entries'])
-        self.assertEqual(entries[0].name, "Staff Payment")
-        self.assertEqual(entries[1].name, "Electricity Bill")
+        self.assertEqual(entries[0].name, "Electricity Bill")
+        self.assertEqual(entries[1].name, "Staff Payment")
